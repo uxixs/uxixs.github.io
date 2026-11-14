@@ -88,11 +88,31 @@
       boxes.forEach((b) => tracker.observe(b));
     }
 
+    const marginTop = () => parseFloat(getComputedStyle(boxes[0]).scrollMarginTop) || 0;
+    const rootTop = () => (opts.root ? opts.root.getBoundingClientRect().top : 0);
+
     return {
       pages: doc.numPages,
-      scrollTo(n, smooth) {
+      // n 쪽의 위에서 frac(0~1) 지점이 화면 위쪽(고정 막대 바로 아래)에 오도록 이동
+      scrollTo(n, smooth, frac = 0) {
         const b = boxes[n - 1];
-        if (b) b.scrollIntoView({ block: "start", behavior: smooth ? "smooth" : "auto" });
+        if (!b) return;
+        const r = b.getBoundingClientRect();
+        const delta = r.top - rootTop() + frac * r.height - marginTop();
+        const behavior = smooth ? "smooth" : "auto";
+        if (opts.root) opts.root.scrollTo({ top: opts.root.scrollTop + delta, behavior });
+        else window.scrollTo({ top: window.scrollY + delta, behavior });
+      },
+      // 지금 읽는 위치 (화면 위쪽 기준선이 걸친 쪽과 그 쪽 안에서의 비율)
+      position() {
+        const line = rootTop() + marginTop() + 6;
+        for (let i = 0; i < boxes.length; i++) {
+          const r = boxes[i].getBoundingClientRect();
+          if (r.bottom > line) {
+            return { page: i + 1, frac: Math.min(Math.max((line - r.top) / r.height, 0), 1) };
+          }
+        }
+        return { page: boxes.length, frac: 1 };
       },
       destroy() {
         alive = false;
@@ -102,23 +122,83 @@
     };
   }
 
-  // PDF 목차(북마크)를 [{title, page, level}] 로 펼칩니다.
+  const norm = (s) => String(s || "").normalize("NFC").replace(/\s+/g, "").toLowerCase();
+
+  // 쪽의 위에서부터의 비율(0~1)로 바꾼 목적지 높이. 알 수 없으면 0(쪽 맨 위).
+  async function destY(doc, page, dest) {
+    const kind = dest[1] && dest[1].name;
+    let top = null;
+    if (kind === "XYZ") top = dest[3];
+    else if (kind === "FitH" || kind === "FitBH") top = dest[2];
+    else if (kind === "FitR") top = dest[5];
+    if (top == null) return 0;
+    const pg = await doc.getPage(page);
+    const [, y0, , y1] = pg.view;
+    return Math.min(Math.max((y1 - top) / (y1 - y0), 0), 1);
+  }
+
+  // 본문에서 제목 줄(본문보다 큰 글씨)을 찾아 위치를 돌려줌. (page, y) 이후만 찾음.
+  async function findHeading(doc, title, page, y) {
+    const want = norm(title);
+    if (!want) return null;
+    for (let p = page; p <= Math.min(doc.numPages, page + 12); p++) {
+      const pg = await doc.getPage(p);
+      const [, y0, , y1] = pg.view;
+      const items = (await pg.getTextContent()).items.filter((it) => it.str && it.str.trim());
+      const hs = items.map((it) => it.height || Math.abs(it.transform[3])).sort((a, b) => a - b);
+      const body = hs[Math.floor(hs.length / 2)] || 10;
+      const lines = new Map(); // 기준선 높이 → 그 줄의 글자 조각들
+      for (const it of items) {
+        const h = it.height || Math.abs(it.transform[3]);
+        const key = Math.round(it.transform[5]);
+        if (!lines.has(key)) lines.set(key, { base: it.transform[5], h, text: "" });
+        const l = lines.get(key);
+        l.text += it.str; l.h = Math.max(l.h, h);
+      }
+      // 제목 줄: 본문보다 조금이라도 큰 글씨로 제목을 담고 있거나, 줄이 제목으로 시작
+      const isHeading = (l) => {
+        const t = norm(l.text);
+        return (l.h >= body * 1.05 && t.includes(want)) || t.startsWith(want);
+      };
+      const hits = [...lines.values()]
+        .map((l) => ({ ...l, top: (y1 - (l.base + l.h)) / (y1 - y0) }))
+        .filter((l) => isHeading(l) && (p > page || l.top > y + 0.005))
+        .sort((a, b) => a.top - b.top);
+      if (hits.length) return { page: p, y: Math.max(hits[0].top - 0.012, 0) };
+    }
+    return null;
+  }
+
+  // PDF 목차(북마크)를 [{title, page, y, level}] 로 펼칩니다. y 는 쪽 안에서의 위치(0~1).
   async function outline(doc) {
     const out = [];
     let items;
     try { items = await doc.getOutline(); } catch (e) { return out; }
     async function walk(list, level) {
       for (const it of list || []) {
-        let page = null;
+        let page = null, y = 0;
         try {
           const dest = typeof it.dest === "string" ? await doc.getDestination(it.dest) : it.dest;
-          if (dest && dest[0]) page = (typeof dest[0] === "object" ? await doc.getPageIndex(dest[0]) : dest[0]) + 1;
+          if (dest && dest[0] != null) {
+            page = (typeof dest[0] === "object" ? await doc.getPageIndex(dest[0]) : dest[0]) + 1;
+            y = await destY(doc, page, dest);
+          }
         } catch (e) {}
-        out.push({ title: it.title, page, level });
+        out.push({ title: it.title, page, y, level });
         if (it.items && it.items.length) await walk(it.items, level + 1);
       }
     }
     await walk(items, 1);
+    // 북마크가 앞 항목과 똑같은 곳을 가리키면(LaTeX 에서 흔한 실수) 본문에서 제목을 찾아 바로잡음
+    for (let i = 1; i < out.length; i++) {
+      const a = out[i - 1], b = out[i];
+      if (b.page && a.page === b.page && Math.abs(a.y - b.y) < 1e-4) {
+        try {
+          const hit = await findHeading(doc, b.title, b.page, b.y);
+          if (hit) { b.page = hit.page; b.y = hit.y; }
+        } catch (e) {}
+      }
+    }
     return out;
   }
 

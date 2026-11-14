@@ -161,30 +161,56 @@
   // ---- 본문 ----
   const pagesEl = $("pages"), tocList = $("toc-list"), pageno = $("pageno");
   let view = null, cancel = null, token = 0, toc = [];
+  let activeIdx = -1, picked = -1, lockUntil = 0;
 
-  // 지금 쪽에 해당하는 목차 항목 강조. 같은 쪽에서 시작하는 항목이 여럿이면 첫 항목.
-  // 목차를 눌러 이동했으면 그 쪽을 벗어날 때까지 누른 항목을 유지.
-  let shownPage = 0, picked = -1, activeIdx = -1, curPage = 1;
+  // 목차 항목·읽는 위치를 "문서 전체에서의 쪽 단위 위치"로: 3쪽 위에서 40% 지점 = 2.4
+  const absOf = (it) => it.page - 1 + (it.y || 0);
+  const absPos = (pos) => pos.page - 1 + pos.frac;
+
   function setOn(idx) {
     activeIdx = idx;
     tocList.querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i === idx));
   }
-  function markToc(n) {
-    if (n === shownPage && picked >= 0) return;
-    shownPage = n; picked = -1;
-    let best = 0;
-    toc.forEach((it) => { if (it.page && it.page <= n && it.page > best) best = it.page; });
-    setOn(toc.findIndex((it) => it.page === best));
+
+  // 읽는 위치보다 앞에서 시작한 마지막 목차 항목
+  function indexAt(a) {
+    let idx = -1;
+    toc.forEach((it, i) => { if (it.page && absOf(it) <= a + 0.004) idx = i; });
+    return idx;
   }
 
-  // 목차 i 번째 항목이 차지하는 쪽 범위 [시작, 다음 항목 시작)
+  // 스크롤 위치 → 쪽 번호, 목차 강조
+  function sync() {
+    if (!view) return;
+    const pos = view.position();
+    pageno.textContent = `${pos.page} / ${view.pages}`;
+    if (picked >= 0 && Date.now() < lockUntil) { setOn(picked); return; } // 목차 클릭 후 부드럽게 이동하는 중
+    let idx = indexAt(absPos(pos));
+    // 목차에서 직접 누른 항목이 같은 위치의 다른 항목과 겹치면 누른 항목을 유지
+    if (picked >= 0 && toc[idx] && Math.abs(absOf(toc[idx]) - absOf(toc[picked])) < 1e-6) idx = picked;
+    else picked = -1;
+    setOn(idx);
+  }
+  let syncTimer = 0;
+  window.addEventListener("scroll", () => {
+    if (syncTimer) return;
+    syncTimer = setTimeout(() => { syncTimer = 0; sync(); }, 60);
+  }, { passive: true });
+
+  // 목차 i 번째 항목의 범위 [시작, 다음 항목 시작) — 쪽 단위 위치
   function sectionRange(i, total) {
-    const start = toc[i].page;
-    let next = total + 1;
+    const start = absOf(toc[i]);
+    let next = total;
     for (let j = i + 1; j < toc.length; j++) {
-      if (toc[j].page && toc[j].page > start) { next = toc[j].page; break; }
+      if (toc[j].page && absOf(toc[j]) > start) { next = absOf(toc[j]); break; }
     }
     return [start, next];
+  }
+
+  function goTo(abs, smooth) {
+    const total = view.pages;
+    const a = Math.min(Math.max(abs, 0), total - 0.001);
+    view.scrollTo(Math.floor(a) + 1, smooth, a - Math.floor(a));
   }
 
   // keep: { idx, frac } 이면 새 언어 문서에서 같은 목차 항목(같은 순번)의 같은 비율 위치로 이동
@@ -197,18 +223,18 @@
     if (cancel) { cancel(); cancel = null; }
     if (keep) pagesEl.style.minHeight = pagesEl.offsetHeight + "px"; // 다시 그리는 동안 스크롤 위치 유지
     pagesEl.innerHTML = `<p class="v-status">불러오는 중…</p>`;
-    tocList.innerHTML = ""; pageno.textContent = ""; toc = []; shownPage = 0; picked = -1; activeIdx = -1; curPage = 1;
+    tocList.innerHTML = ""; pageno.textContent = ""; toc = []; activeIdx = -1; picked = -1;
     try {
       const r = await PdfView.open(f.path);
       if (my !== token) { r.cancel(); return; }
       cancel = r.cancel;
       const total = r.doc.numPages;
       pageno.textContent = `1 / ${total}`;
-      view = await PdfView.mount(pagesEl, r.doc, {
-        onPage: (n) => { curPage = n; pageno.textContent = `${n} / ${total}`; markToc(n); },
-      });
-      toc = await PdfView.outline(r.doc);
+      view = await PdfView.mount(pagesEl, r.doc);
       if (my !== token) return;
+      const outline = await PdfView.outline(r.doc);
+      if (my !== token) return;
+      toc = outline;
       tocList.innerHTML = toc.length
         ? toc.map((it, i) => `<li class="l${Math.min(it.level, 3)}"><button type="button" data-i="${i}"${it.page ? "" : " disabled"}>
             <span class="t">${esc(it.title)}</span>${it.page ? `<span class="p">${it.page}</span>` : ""}</button></li>`).join("")
@@ -216,14 +242,11 @@
       const idx = keep ? Math.min(keep.idx, toc.length - 1) : -1;
       if (idx >= 0 && toc[idx].page) {
         const [start, next] = sectionRange(idx, total);
-        const target = Math.min(total, start + Math.floor(keep.frac * (next - start)));
-        view.scrollTo(target);
-        curPage = shownPage = target; picked = idx; setOn(idx);
-        pageno.textContent = `${target} / ${total}`;
-      } else {
-        markToc(1);
+        goTo(start + keep.frac * (next - start), false);
+        picked = idx;
       }
       pagesEl.style.minHeight = "";
+      sync();
     } catch (err) {
       pagesEl.style.minHeight = "";
       if (my !== token) return;
@@ -237,8 +260,8 @@
     if (!b || !view) return;
     const i = Number(b.dataset.i), it = toc[i];
     if (it && it.page) {
-      view.scrollTo(it.page, true);
-      shownPage = it.page; picked = i; setOn(i);
+      view.scrollTo(it.page, true, it.y || 0);
+      picked = i; setOn(i); lockUntil = Date.now() + 1000;
     }
     $("toc").classList.remove("open"); $("toc-toggle").setAttribute("aria-expanded", "false");
   });
@@ -258,18 +281,20 @@
     const f = pdfs.find((x) => x.path === b.dataset.path);
     if (!f) return;
     // 본문을 읽는 중이면 지금 목차 항목과 그 안에서의 위치를 기억해 두었다가 새 언어에서 이어서 보여 줌
-    const reading = $("read").getBoundingClientRect().top < 80 && activeIdx >= 0 && view;
     let keep = null;
-    if (reading) {
-      const [start, next] = sectionRange(activeIdx, view.pages);
-      const frac = Math.min(Math.max((curPage - start) / Math.max(1, next - start), 0), 0.999);
-      keep = { idx: activeIdx, frac };
+    if (view && $("read").getBoundingClientRect().top < 80) {
+      const a = absPos(view.position());
+      const idx = picked >= 0 ? picked : indexAt(a);
+      if (idx >= 0) {
+        const [start, next] = sectionRange(idx, view.pages);
+        keep = { idx, frac: Math.min(Math.max((a - start) / Math.max(next - start, 0.001), 0), 0.999) };
+      }
     }
     load(f, keep);
     const u = new URL(location.href);
     if (f.label) u.searchParams.set("lang", f.label); else u.searchParams.delete("lang");
     history.replaceState(null, "", u);
-    if (!reading) $("read").scrollIntoView({ block: "start" });
+    if (!keep) $("read").scrollIntoView({ block: "start" });
   });
 
   load(cur);
