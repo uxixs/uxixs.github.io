@@ -48,17 +48,6 @@ window.SITE = {
       code: "",
       image: "",
       tags: ["AI", "기본소득", "유효수요", "종속이론", "기술추격"]
-    },
-    {
-      type: "project",
-      title: "예시 프로젝트",
-      year: 2026,
-      description: "무엇을 만들었고 어떤 문제를 풀었는지 짧게 적습니다.",
-      file: "",
-      link: "",
-      code: "https://github.com/uxixs",
-      image: "",
-      tags: ["Python", "Web"]
     }
   ]
 };
