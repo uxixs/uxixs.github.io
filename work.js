@@ -17,6 +17,7 @@
     book: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4.25C6.75 3.25 4.75 2.75 2 2.75v9.5c2.75 0 4.75.5 6 1.5 1.25-1 3.25-1.5 6-1.5v-9.5c-2.75 0-4.75.5-6 1.5ZM8 4.25v9.5"/></svg>',
     link: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.75 9.25a2.75 2.75 0 0 0 4 .1l2-2a2.75 2.75 0 0 0-3.9-3.9l-.85.85M9.25 6.75a2.75 2.75 0 0 0-4-.1l-2 2a2.75 2.75 0 0 0 3.9 3.9l.85-.85"/></svg>',
     arrow: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 11 11 5M6 5h5v5"/></svg>',
+    up: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3.5M4 7.5l4-4 4 4"/></svg>',
     list: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 4h8M5.5 8h8M5.5 12h8M2.5 4h.01M2.5 8h.01M2.5 12h.01"/></svg>',
   };
 
@@ -109,6 +110,7 @@
         <div class="d-bar-r">
           <span class="d-pageno" id="pageno"></span>
           <a class="btn icon" id="bar-dl" href="#" download aria-label="다운로드" title="다운로드">${ICON.down}</a>
+          <button type="button" class="btn to-top" id="to-top" title="맨 위로">${ICON.up}<span>맨 위로</span></button>
         </div>
       </div></div>
       <div class="d-reader">
@@ -214,6 +216,11 @@
       view.scrollTo(it.page, true);
       shownPage = it.page; picked = i; setOn(i);
     }
+    $("toc").classList.remove("open"); $("toc-toggle").setAttribute("aria-expanded", "false");
+  });
+  $("to-top").addEventListener("click", () => {
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
     $("toc").classList.remove("open"); $("toc-toggle").setAttribute("aria-expanded", "false");
   });
   $("toc-toggle").addEventListener("click", () => {
