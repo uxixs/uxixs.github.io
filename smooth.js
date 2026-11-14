@@ -1,25 +1,72 @@
 // =============================================================
-//  마우스 휠 부드러운 스크롤
-//  휠을 굴리면 목표 위치만 옮기고, 화면(과 스크롤바)은 그 위치까지 미끄러지듯 따라갑니다.
-//  - 마우스가 있는 데스크톱에서만 동작 (휴대폰·태블릿 터치는 기본 그대로)
-//  - 터치패드처럼 원래 부드러운 입력, Ctrl+휠(확대), 가로 스크롤은 건드리지 않음
-//  - "동작 줄이기" 설정을 켠 사용자에게는 적용하지 않음
+//  부드러운 스크롤
+//  1) SmoothScroll.to(요소, 위치): 코드에서 하는 이동(맨 위로, 목차 클릭 등)을 직접 애니메이션.
+//     브라우저의 behavior:"smooth" 는 다른 영역(목차)이 동시에 부드럽게 스크롤되면
+//     서로 끊기는 문제가 있어서, 위치를 프레임마다 직접 바꿉니다.
+//  2) 마우스 휠: 휠을 굴리면 목표 위치만 옮기고 화면이 그 위치까지 미끄러지듯 따라갑니다.
+//     - 마우스가 있는 데스크톱에서만 (휴대폰·태블릿 터치는 기본 그대로)
+//     - 터치패드처럼 원래 부드러운 입력, Ctrl+휠(확대), 가로 스크롤은 건드리지 않음
+//  "동작 줄이기" 설정을 켠 사용자에게는 애니메이션 없이 바로 이동합니다.
 // =============================================================
 (function () {
-  if (!window.matchMedia || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
-  const EASE = 0.12;          // 한 프레임(60fps 기준)에 남은 거리의 몇 %를 따라갈지. 작을수록 더 미끄러짐
-  const MIN_WHEEL = 20;       // 이보다 작은 움직임은 터치패드로 보고 기본 스크롤에 맡김
+  const reduce = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
   const root = document.scrollingElement || document.documentElement;
-  const state = new WeakMap();
+  const state = new WeakMap(); // 요소 → 진행 중인 애니메이션
 
-  const isRoot = (el) => el === root;
-  const getY = (el) => (isRoot(el) ? window.scrollY : el.scrollTop);
-  const setY = (el, y) => { if (isRoot(el)) window.scrollTo(0, y); else el.scrollTop = y; };
-  const maxY = (el) => (isRoot(el)
+  const isRoot = (el) => el === root || el === window || el === document.documentElement || el === document.body;
+  const norm = (el) => (isRoot(el) ? root : el);
+  const getY = (el) => (el === root ? window.scrollY : el.scrollTop);
+  const setY = (el, y) => { if (el === root) window.scrollTo(0, y); else el.scrollTop = y; };
+  const maxY = (el) => (el === root
     ? Math.max(0, root.scrollHeight - window.innerHeight)
     : Math.max(0, el.scrollHeight - el.clientHeight));
-  const targetOf = (el) => { const s = state.get(el); return s && s.running ? s.target : getY(el); };
+  const S = (el) => { let s = state.get(el); if (!s) { s = { mode: null }; state.set(el, s); } return s; };
+
+  function frame(el, s, run) {
+    s.raf = requestAnimationFrame((t) => run(el, s, t));
+    // 화면 갱신이 멈춘 환경(백그라운드 등)에서 막히지 않도록: 프레임이 안 오면 바로 도착
+    clearTimeout(s.watch);
+    s.watch = setTimeout(() => {
+      if (s.mode && performance.now() - s.last > 150) { setY(el, s.target); stop(s); }
+    }, 200);
+  }
+  function stop(s) { s.mode = null; cancelAnimationFrame(s.raf); clearTimeout(s.watch); }
+
+  // ---- 1) 코드에서 하는 이동: 시간 기반 ease-out ----
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+  function tween(el, s, now) {
+    if (s.mode !== "tween") return;
+    if (Math.abs(getY(el) - s.pos) > 3) { stop(s); return; } // 사용자가 다른 방식으로 스크롤함
+    s.last = now;
+    const t = Math.min(1, (now - s.t0) / s.dur);
+    s.pos = s.from + (s.target - s.from) * easeOut(t);
+    setY(el, s.pos);
+    s.pos = getY(el);
+    if (t < 1) frame(el, s, tween); else stop(s);
+  }
+  function to(el, y, opts = {}) {
+    el = norm(el);
+    const s = S(el);
+    stop(s);
+    const target = Math.max(0, Math.min(maxY(el), y));
+    if (reduce.matches || opts.instant) { setY(el, target); return; }
+    s.from = s.pos = getY(el);
+    s.target = target;
+    const dist = Math.abs(target - s.from);
+    if (dist < 1) return;
+    s.dur = opts.duration || Math.min(900, 280 + Math.sqrt(dist) * 5);
+    s.t0 = s.last = performance.now();
+    s.mode = "tween";
+    frame(el, s, tween);
+  }
+  window.SmoothScroll = { to };
+
+  // ---- 2) 마우스 휠 ----
+  if (!window.matchMedia || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+  const EASE = 0.12;     // 한 프레임(60fps 기준)에 남은 거리의 몇 %를 따라갈지. 작을수록 더 미끄러짐
+  const MIN_WHEEL = 20;  // 이보다 작은 움직임은 터치패드로 보고 기본 스크롤에 맡김
+
+  const targetOf = (el) => { const s = state.get(el); return s && s.mode ? s.target : getY(el); };
 
   // 휠이 움직일 대상: 이 방향으로 더 움직일 수 있는 가장 가까운 스크롤 영역
   function pick(start, dy) {
@@ -35,18 +82,17 @@
     return root;
   }
 
-  function step(el, s, now) {
-    // 스크롤바 끌기·키보드·다른 코드가 위치를 바꿨으면 그쪽을 따르고 멈춤
-    if (Math.abs(getY(el) - s.pos) > 3) { s.running = false; return; }
+  function glide(el, s, now) {
+    if (s.mode !== "wheel") return;
+    if (Math.abs(getY(el) - s.pos) > 3) { stop(s); return; } // 스크롤바 끌기·키보드 등
     const dt = Math.min(64, now - s.last);
     s.last = now;
     const a = 1 - Math.pow(1 - EASE, dt / 16.67);
     s.pos += (s.target - s.pos) * a;
     if (Math.abs(s.target - s.pos) < 0.5) s.pos = s.target;
     setY(el, s.pos);
-    s.pos = getY(el); // 브라우저가 반올림한 실제 위치로 맞춤
-    if (Math.abs(s.target - s.pos) >= 0.5) requestAnimationFrame((t) => step(el, s, t));
-    else s.running = false;
+    s.pos = getY(el);
+    if (Math.abs(s.target - s.pos) >= 0.5) frame(el, s, glide); else stop(s);
   }
 
   window.addEventListener("wheel", (e) => {
@@ -59,19 +105,13 @@
     e.preventDefault();
     if (!el) return;
 
-    let s = state.get(el);
-    if (!s) { s = { running: false }; state.set(el, s); }
-    if (!s.running) { s.pos = getY(el); s.target = s.pos; }
+    const s = S(el);
+    if (s.mode !== "wheel") { stop(s); s.pos = getY(el); s.target = s.pos; } // 진행 중인 코드 이동은 휠이 이김
     s.target = Math.max(0, Math.min(maxY(el), s.target + dy));
-    if (!s.running && Math.abs(s.target - s.pos) >= 0.5) {
-      s.running = true;
+    if (s.mode !== "wheel" && Math.abs(s.target - s.pos) >= 0.5) {
+      s.mode = "wheel";
       s.last = performance.now();
-      requestAnimationFrame((t) => step(el, s, t));
-      // 화면 갱신이 멈춘 환경(백그라운드 등)에서 스크롤이 막히지 않도록: 프레임이 안 오면 바로 이동
-      clearTimeout(s.watch);
-      s.watch = setTimeout(() => {
-        if (s.running && performance.now() - s.last > 150) { setY(el, s.target); s.pos = getY(el); s.running = false; }
-      }, 200);
+      frame(el, s, glide);
     }
   }, { passive: false });
 })();

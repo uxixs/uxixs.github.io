@@ -186,9 +186,9 @@
     const box = tocEl.getBoundingClientRect(), r = btn.getBoundingClientRect();
     const pad = Math.min(56, box.height / 4);
     if (r.top >= box.top + pad && r.bottom <= box.bottom - pad) return; // 이미 잘 보임
-    const delta = r.top - box.top - (box.height - r.height) / 2;
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    tocEl.scrollTo({ top: tocEl.scrollTop + delta, behavior: smooth && !reduce ? "smooth" : "auto" });
+    const top = tocEl.scrollTop + r.top - box.top - (box.height - r.height) / 2;
+    if (smooth && window.SmoothScroll) window.SmoothScroll.to(tocEl, top, { duration: 380 });
+    else tocEl.scrollTop = top;
   }
 
   // 읽는 위치보다 앞에서 시작한 마지막 목차 항목
@@ -285,8 +285,8 @@
     $("toc").classList.remove("open"); $("toc-toggle").setAttribute("aria-expanded", "false");
   });
   $("to-top").addEventListener("click", () => {
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    if (window.SmoothScroll) window.SmoothScroll.to(window, 0);
+    else window.scrollTo(0, 0);
     $("toc").classList.remove("open"); $("toc-toggle").setAttribute("aria-expanded", "false");
   });
   $("toc-toggle").addEventListener("click", () => {

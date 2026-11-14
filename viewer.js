@@ -99,9 +99,10 @@
         if (!b) return;
         const r = b.getBoundingClientRect();
         const delta = r.top - rootTop() + frac * r.height - marginTop();
-        const behavior = smooth ? "smooth" : "auto";
-        if (opts.root) opts.root.scrollTo({ top: opts.root.scrollTop + delta, behavior });
-        else window.scrollTo({ top: window.scrollY + delta, behavior });
+        const top = (opts.root ? opts.root.scrollTop : window.scrollY) + delta;
+        if (smooth && window.SmoothScroll) window.SmoothScroll.to(opts.root || window, top);
+        else if (opts.root) opts.root.scrollTop = top;
+        else window.scrollTo(0, top);
       },
       // 지금 읽는 위치 (화면 위쪽 기준선이 걸친 쪽과 그 쪽 안에서의 비율)
       position() {
