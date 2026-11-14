@@ -140,6 +140,10 @@ svg {
   word-break: keep-all;
 }
 
+.work .desc {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+}
+
 .meta {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 20px;
   margin-top: 22px;
