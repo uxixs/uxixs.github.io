@@ -19,11 +19,13 @@
     down: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8M4.75 7.5 8 10.75l3.25-3.25M3 13.5h10"/></svg>',
     close: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg>',
     ext: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5 7.5 8.5M11.5 9.5v3.25a.75.75 0 0 1-.75.75h-7.5a.75.75 0 0 1-.75-.75v-7.5a.75.75 0 0 1 .75-.75H6.5"/></svg>',
+    full: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>',
   };
 
   const attrs = (h) => `href="${esc(h)}" target="_blank" rel="noopener"`;
   const isPdf = (p) => /\.pdf(\?|#|$)/i.test(p || "");
   const fileName = (p) => String(p || "").split("/").pop();
+  const detailUrl = (w) => `work.html?id=${encodeURIComponent(w.id)}`;
 
   // 연도 내림차순. 같은 해에서는 data.js 에 적은 순서 유지.
   const works = (S.works || []).map((w, i) => ({ w, i }))
@@ -81,12 +83,19 @@
     const tags = (Array.isArray(w.tags) ? w.tags : []).filter(Boolean);
     const icon = ICON[w.type] || ICON.other;
     const title = esc(w.title || "Untitled");
+    // 제목: id 가 있으면 상세 페이지, 없으면 첫 PDF 팝업, 그것도 없으면 첫 링크
     const firstPdf = files.findIndex((f) => isPdf(f.path));
-    const titleHtml = firstPdf >= 0
-      ? `<button type="button" class="title-btn" data-view="${wi}:${firstPdf}">${title}</button>`
-      : (links[0] ? `<a ${attrs(links[0][0])}>${title}</a>` : title);
-    const thumbOpen = firstPdf >= 0 ? `button type="button" data-view="${wi}:${firstPdf}" tabindex="-1" aria-hidden="true"`
-      : (links[0] ? `a ${attrs(links[0][0])} tabindex="-1" aria-hidden="true"` : "div");
+    let titleHtml = title, thumbOpen = "div";
+    if (w.id) {
+      titleHtml = `<a href="${detailUrl(w)}">${title}</a>`;
+      thumbOpen = `a href="${detailUrl(w)}" tabindex="-1" aria-hidden="true"`;
+    } else if (firstPdf >= 0) {
+      titleHtml = `<button type="button" class="title-btn" data-view="${wi}:${firstPdf}">${title}</button>`;
+      thumbOpen = `button type="button" data-view="${wi}:${firstPdf}" tabindex="-1" aria-hidden="true"`;
+    } else if (links[0]) {
+      titleHtml = `<a ${attrs(links[0][0])}>${title}</a>`;
+      thumbOpen = `a ${attrs(links[0][0])} tabindex="-1" aria-hidden="true"`;
+    }
     const thumbClose = thumbOpen.split(" ")[0];
 
     return `<article class="work${w.image ? " has-image" : ""}" data-type="${esc(w.type || "")}">
@@ -131,17 +140,16 @@
     const b = e.target.closest("[data-view]");
     if (!b) return;
     const [wi, fi] = b.dataset.view.split(":").map(Number);
-    Viewer.open(works[wi], fi, true);
+    Popup.open(works[wi], fi);
   });
 
   renderFilters();
   renderWorks();
 
   // =============================================================
-  //  PDF 뷰어 (PDF.js). 처음 열 때만 라이브러리를 불러옵니다.
+  //  읽기 팝업
   // =============================================================
-  const PDFJS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/";
-  const Viewer = (() => {
+  const Popup = (() => {
     const el = $("viewer");
     const pagesEl = el.querySelector(".v-pages");
     const titleEl = el.querySelector(".v-title");
@@ -149,61 +157,42 @@
     const infoEl = el.querySelector(".v-info");
     const dlEl = el.querySelector(".v-download");
     const extEl = el.querySelector(".v-external");
-    let libPromise = null, doc = null, task = null, observer = null, token = 0;
-    let current = null, lastFocus = null, pushed = false;
+    const fullEl = el.querySelector(".v-full");
+    let token = 0, cur = null, view = null, cancel = null, lastFocus = null, pushed = false;
 
     el.querySelector(".v-close").innerHTML = ICON.close;
     dlEl.innerHTML = ICON.down + "<span>다운로드</span>";
     extEl.innerHTML = ICON.ext;
+    fullEl.innerHTML = ICON.full + "<span>상세 페이지</span>";
 
-    function loadLib() {
-      if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
-      if (!libPromise) {
-        libPromise = new Promise((res, rej) => {
-          const s = document.createElement("script");
-          s.src = PDFJS + "build/pdf.min.js";
-          s.onload = () => {
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + "build/pdf.worker.min.js";
-            res(window.pdfjsLib);
-          };
-          s.onerror = () => { libPromise = null; rej(new Error("lib")); };
-          document.head.appendChild(s);
-        });
-      }
-      return libPromise;
+    function teardown() {
+      if (view) { view.destroy(); view = null; }
+      if (cancel) { cancel(); cancel = null; }
     }
 
-    function setStatus(text) { pagesEl.innerHTML = `<p class="v-status">${text}</p>`; }
-
-    async function show(w, fi) {
-      const files = filesOf(w).filter((f) => isPdf(f.path));
-      const f = files.find((x) => x === filesOf(w)[fi]) || files[0];
-      current = { w, f };
+    async function show(w, f) {
       const my = ++token;
-
+      const pdfs = filesOf(w).filter((x) => isPdf(x.path));
+      cur = { w, f };
       titleEl.textContent = w.title || "";
-      tabsEl.innerHTML = files.length > 1
-        ? files.map((x) => `<button type="button" aria-pressed="${x === f}" data-path="${esc(x.path)}">${esc(x.label || fileName(x.path))}</button>`).join("")
+      tabsEl.innerHTML = pdfs.length > 1
+        ? pdfs.map((x) => `<button type="button" aria-pressed="${x.path === f.path}" data-path="${esc(x.path)}">${esc(x.label || fileName(x.path))}</button>`).join("")
         : "";
-      tabsEl.hidden = files.length < 2;
+      tabsEl.hidden = pdfs.length < 2;
       dlEl.href = f.path; dlEl.setAttribute("download", fileName(f.path));
       extEl.href = f.path;
+      fullEl.hidden = !w.id;
+      if (w.id) fullEl.href = detailUrl(w) + (f.label ? "&lang=" + encodeURIComponent(f.label) : "");
       infoEl.textContent = "";
-      setStatus("불러오는 중…");
+      pagesEl.innerHTML = `<p class="v-status">불러오는 중…</p>`;
       pagesEl.scrollTop = 0;
-
-      cleanup();
+      teardown();
       try {
-        const lib = await loadLib();
-        if (my !== token) return;
-        task = lib.getDocument({
-          url: f.path,
-          cMapUrl: PDFJS + "cmaps/", cMapPacked: true,
-          standardFontDataUrl: PDFJS + "standard_fonts/",
-        });
-        doc = await task.promise;
-        if (my !== token) return;
-        await layout(my);
+        const r = await PdfView.open(f.path);
+        if (my !== token) { r.cancel(); return; }
+        cancel = r.cancel;
+        infoEl.textContent = `${r.doc.numPages}쪽`;
+        view = await PdfView.mount(pagesEl, r.doc, { root: pagesEl });
       } catch (err) {
         if (my !== token) return;
         pagesEl.innerHTML = `<p class="v-status">미리보기를 불러오지 못했습니다.<br>
@@ -211,79 +200,27 @@
       }
     }
 
-    async function layout(my) {
-      const first = await doc.getPage(1);
-      if (my !== token) return;
-      const vp = first.getViewport({ scale: 1 });
-      const ratio = vp.height / vp.width;
-      infoEl.textContent = `${doc.numPages}쪽`;
-      pagesEl.innerHTML = "";
-      const frag = document.createDocumentFragment();
-      for (let n = 1; n <= doc.numPages; n++) {
-        const p = document.createElement("div");
-        p.className = "v-page";
-        p.dataset.n = n;
-        p.style.aspectRatio = `1 / ${ratio}`;
-        frag.appendChild(p);
-      }
-      pagesEl.appendChild(frag);
-      const boxes = [...pagesEl.querySelectorAll(".v-page")];
-      const want = (box) => {
-        if (box.dataset.done) return;
-        box.dataset.done = "1";
-        renderPage(box, my);
-      };
-      // 첫 두 쪽은 바로 그리고, 나머지는 스크롤해서 가까워지면 그립니다.
-      boxes.slice(0, 2).forEach(want);
-      observer = new IntersectionObserver((entries) => {
-        entries.forEach((en) => { if (en.isIntersecting) want(en.target); });
-      }, { root: pagesEl, rootMargin: "1200px 0px" });
-      boxes.forEach((p) => observer.observe(p));
-    }
-
-    async function renderPage(box, my) {
-      try {
-        const page = await doc.getPage(Number(box.dataset.n));
-        if (my !== token) return;
-        const base = page.getViewport({ scale: 1 });
-        box.style.aspectRatio = `${base.width} / ${base.height}`;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-        const scale = (box.clientWidth / base.width) * dpr;
-        const vp = page.getViewport({ scale });
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.floor(vp.width);
-        canvas.height = Math.floor(vp.height);
-        await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
-        if (my !== token) return;
-        box.appendChild(canvas);
-      } catch (e) { box.dataset.done = ""; }
-    }
-
-    function cleanup() {
-      if (observer) { observer.disconnect(); observer = null; }
-      if (task) { try { task.destroy(); } catch (e) {} task = null; }
-      doc = null;
-    }
-
-    function open(w, fi, fromClick) {
+    function open(w, fi) {
+      const f = filesOf(w)[fi];
+      if (!f) return;
       lastFocus = document.activeElement;
       el.hidden = false;
       document.documentElement.classList.add("v-lock");
       requestAnimationFrame(() => el.classList.add("on"));
       el.querySelector(".v-close").focus();
-      if (fromClick && !pushed) { history.pushState({ viewer: 1 }, ""); pushed = true; }
-      show(w, fi);
+      if (!pushed) { history.pushState({ popup: 1 }, ""); pushed = true; }
+      show(w, f);
     }
 
     function close(fromPop) {
       if (el.hidden) return;
       token++;
-      cleanup();
+      teardown();
       el.classList.remove("on");
       el.hidden = true;
       pagesEl.innerHTML = "";
       document.documentElement.classList.remove("v-lock");
-      if (pushed && !fromPop) { pushed = false; history.back(); }
+      if (pushed && !fromPop) history.back();
       pushed = false;
       if (lastFocus) lastFocus.focus();
     }
@@ -292,9 +229,9 @@
     el.addEventListener("click", (e) => { if (e.target === el) close(); });
     tabsEl.addEventListener("click", (e) => {
       const b = e.target.closest("[data-path]");
-      if (!b || !current || b.dataset.path === current.f.path) return;
-      const fi = filesOf(current.w).findIndex((x) => x.path === b.dataset.path);
-      show(current.w, fi);
+      if (!b || !cur || b.dataset.path === cur.f.path) return;
+      const f = filesOf(cur.w).find((x) => x.path === b.dataset.path);
+      if (f) show(cur.w, f);
     });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
     window.addEventListener("popstate", () => close(true));
