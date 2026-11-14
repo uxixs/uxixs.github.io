@@ -168,8 +168,27 @@
   const absPos = (pos) => pos.page - 1 + pos.frac;
 
   function setOn(idx) {
+    const changed = idx !== activeIdx;
     activeIdx = idx;
     tocList.querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i === idx));
+    if (changed) revealActive(true);
+  }
+
+  // 강조된 목차 항목이 목차 창 밖에 있으면 목차를 스크롤해서 가운데쯤 보이게 함.
+  // 사용자가 목차 위에 마우스를 올리고 보는 중이면 건드리지 않음.
+  const tocEl = $("toc");
+  function revealActive(smooth) {
+    if (!tocEl || activeIdx < 0) return;
+    if (smooth && tocEl.matches(":hover")) return;
+    if (tocEl.scrollHeight <= tocEl.clientHeight + 1 || !tocEl.offsetParent) return; // 스크롤할 게 없거나 숨겨짐
+    const btn = tocList.querySelectorAll("button")[activeIdx];
+    if (!btn) return;
+    const box = tocEl.getBoundingClientRect(), r = btn.getBoundingClientRect();
+    const pad = Math.min(56, box.height / 4);
+    if (r.top >= box.top + pad && r.bottom <= box.bottom - pad) return; // 이미 잘 보임
+    const delta = r.top - box.top - (box.height - r.height) / 2;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    tocEl.scrollTo({ top: tocEl.scrollTop + delta, behavior: smooth && !reduce ? "smooth" : "auto" });
   }
 
   // 읽는 위치보다 앞에서 시작한 마지막 목차 항목
@@ -273,6 +292,7 @@
   $("toc-toggle").addEventListener("click", () => {
     const open = $("toc").classList.toggle("open");
     $("toc-toggle").setAttribute("aria-expanded", open);
+    if (open) revealActive(false); // 휴대폰 목차 메뉴를 열면 지금 읽는 항목이 보이게
   });
   const lt = $("lang-tabs");
   if (lt) lt.addEventListener("click", (e) => {
