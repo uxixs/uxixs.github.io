@@ -47,7 +47,7 @@
   const hasKoAbs = !!w.abstract, hasEnAbs = !!w.abstract_en;
   let absLang = isEn(cur) && hasEnAbs ? "en" : (hasKoAbs ? "ko" : "en");
 
-  const paras = (s) => String(s || "").split(/\n\s*\n/).map((p) => `<p>${esc(p.trim())}</p>`).join("");
+  const paras = (s) => String(s || "").split(/\n\s*\n/).map((p) => `<p>${Tex.html(p.trim(), esc)}</p>`).join("");
   const chips = (arr) => (arr || []).filter(Boolean).map((k) => `<li>${esc(k)}</li>`).join("");
 
   const dlBtns = [...pdfs, ...others].map((f) =>
@@ -124,9 +124,11 @@
     if (!body) return;
     body.lang = absLang === "en" ? "en" : "ko";
     body.innerHTML = paras(absLang === "en" ? w.abstract_en : w.abstract);
+    Tex.run(body);
     document.querySelectorAll("#abs-tabs button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.l === absLang));
   }
   renderAbs();
+  Tex.run($("detail"));
   const absTabsEl = $("abs-tabs");
   if (absTabsEl) absTabsEl.addEventListener("click", (e) => {
     const b = e.target.closest("[data-l]");

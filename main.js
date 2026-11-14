@@ -103,7 +103,7 @@
         <p class="kind"><span class="glyph">${icon}</span>${esc(label(w.type))}${w.venue ? `<span class="venue">${esc(w.venue)}</span>` : ""}</p>
         <h3>${titleHtml}</h3>
         ${w.subtitle ? `<p class="alt">${esc(w.subtitle)}</p>` : ""}
-        ${w.description ? `<p class="desc">${esc(w.description)}</p>` : ""}
+        ${w.description ? `<p class="desc">${Tex.html(w.description, esc)}</p>` : ""}
         ${acts.length || tags.length ? `<div class="meta">
           ${acts.length ? `<div class="actions">${acts.join("")}</div>` : ""}
           ${tags.length ? `<ul class="tags">${tags.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
@@ -127,6 +127,7 @@
         <h2>${esc(g.year || "—")}</h2>
         <div class="items">${g.items.map((w) => item(w, works.indexOf(w))).join("")}</div>
       </section>`).join("");
+    Tex.run($("works"));
   }
 
   $("filters").addEventListener("click", (e) => {

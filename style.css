@@ -372,6 +372,8 @@ button.btn { font-family: inherit; border: 0; background: none; cursor: pointer;
 }
 .d-abs-body[lang="en"] p { line-height: 1.75; word-break: normal; hyphens: auto; }
 .d-abs-body p + p { margin-top: 1em; }
+.katex { font-size: 1.06em; }
+.tex:not([data-done]) { font-family: ui-monospace, monospace; font-size: .92em; color: var(--text-2); }
 
 .d-info .d-h { margin-bottom: 4px; }
 .d-info dl { margin: 0; }
