@@ -7,56 +7,37 @@
   <meta name="description" content="Papers and projects">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top">
-    <nav class="wrap nav">
-      <a class="brand" href="#" id="brand"></a>
-      <div class="nav-links">
-        <a href="#papers">Papers</a>
-        <a href="#projects">Projects</a>
-        <a href="#contact">Contact</a>
-        <button class="theme" id="theme" aria-label="다크 모드 전환">◐</button>
-      </div>
-    </nav>
-  </header>
-
-  <main class="wrap">
-    <section class="hero">
+  <div class="layout">
+    <aside class="profile">
       <div class="avatar" id="avatar"></div>
-      <div>
-        <h1 id="name"></h1>
-        <p class="role" id="role"></p>
-        <p class="bio" id="bio"></p>
-        <div class="chips" id="hero-links"></div>
-      </div>
-    </section>
+      <h1 id="name"></h1>
+      <p class="role" id="role"></p>
+      <ul class="links" id="links"></ul>
+    </aside>
 
-    <section id="papers">
-      <div class="section-head">
-        <h2>Papers</h2>
-        <span class="count" id="paper-count"></span>
-      </div>
-      <ol class="papers" id="paper-list"></ol>
-    </section>
+    <main class="content">
+      <section id="about">
+        <h2>About</h2>
+        <p id="bio"></p>
+      </section>
 
-    <section id="projects">
-      <div class="section-head">
+      <section id="papers">
+        <h2>Publications</h2>
+        <ul class="pubs" id="paper-list"></ul>
+      </section>
+
+      <section id="projects">
         <h2>Projects</h2>
-        <div class="filters" id="filters"></div>
-      </div>
-      <div class="grid" id="project-grid"></div>
-    </section>
+        <ul class="projects" id="project-list"></ul>
+      </section>
 
-    <section id="contact" class="contact">
-      <h2>Contact</h2>
-      <p id="contact-line"></p>
-    </section>
-  </main>
-
-  <footer class="wrap foot" id="foot"></footer>
+      <footer class="foot" id="foot"></footer>
+    </main>
+  </div>
 
   <script src="data.js"></script>
   <script src="main.js"></script>

@@ -23,7 +23,7 @@ window.SITE = {
       authors: "홍길동, 김철수",
       venue: "학부 연구 프로그램 결과보고서",
       year: 2026,
-      abstract: "논문 요약을 두세 문장으로 적습니다. 카드에서 '초록' 버튼을 누르면 펼쳐집니다.",
+      abstract: "논문 요약을 두세 문장으로 적습니다. 'Abstract'를 누르면 펼쳐집니다.",
       pdf: "papers/example.pdf",   // papers/ 폴더에 넣은 PDF 파일 이름
       link: "",                    // arXiv, 학회 페이지 등 외부 링크
       code: "",                    // 관련 코드 저장소
