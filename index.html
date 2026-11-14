@@ -3,40 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Portfolio</title>
-  <meta name="description" content="Papers and projects">
+  <title>Works</title>
+  <meta name="description" content="Works archive">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="layout">
-    <aside class="profile">
-      <div class="avatar" id="avatar"></div>
-      <h1 id="name"></h1>
-      <p class="role" id="role"></p>
-      <ul class="links" id="links"></ul>
-    </aside>
+  <div class="page">
+    <header class="masthead">
+      <h1 id="title"></h1>
+      <p class="sub"><span id="subtitle"></span><span class="count" id="count"></span></p>
+    </header>
 
-    <main class="content">
-      <section id="about">
-        <h2>About</h2>
-        <p id="bio"></p>
-      </section>
+    <nav class="filters" id="filters" aria-label="종류별 보기"></nav>
 
-      <section id="papers">
-        <h2>Publications</h2>
-        <ul class="pubs" id="paper-list"></ul>
-      </section>
+    <div class="index-head" aria-hidden="true">
+      <span>No.</span><span>Title</span><span>Type</span><span>Year</span>
+    </div>
+    <ol class="works" id="works"></ol>
 
-      <section id="projects">
-        <h2>Projects</h2>
-        <ul class="projects" id="project-list"></ul>
-      </section>
-
-      <footer class="foot" id="foot"></footer>
-    </main>
+    <footer class="foot" id="foot"></footer>
   </div>
 
   <script src="data.js"></script>
