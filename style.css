@@ -490,10 +490,10 @@ button.btn { font-family: inherit; border: 0; background: none; cursor: pointer;
   syntax: "<color>"; inherits: true; initial-value: transparent;
 }
 :root {
-  --sb-rest: color-mix(in srgb, var(--text-3) 50%, transparent);
-  --sb-faint: color-mix(in srgb, var(--text-3) 28%, transparent);
-  --sb-hover: var(--text-2);
-  --sb-active: var(--accent);
+  --sb-rest: color-mix(in srgb, var(--text-3) 34%, transparent);
+  --sb-faint: color-mix(in srgb, var(--text-3) 20%, transparent);
+  --sb-hover: color-mix(in srgb, var(--text-3) 62%, transparent);
+  --sb-active: color-mix(in srgb, var(--accent) 70%, transparent);
   --sb: var(--sb-rest);
 }
 
@@ -508,32 +508,31 @@ button.btn { font-family: inherit; border: 0; background: none; cursor: pointer;
   }
   html::-webkit-scrollbar-thumb:hover,
   .d-toc::-webkit-scrollbar-thumb:hover,
-  .v-pages::-webkit-scrollbar-thumb:hover { background-color: var(--sb-hover); border-width: 3px; }
+  .v-pages::-webkit-scrollbar-thumb:hover { background-color: var(--sb-hover); }
   html::-webkit-scrollbar-thumb:active,
   .d-toc::-webkit-scrollbar-thumb:active,
-  .v-pages::-webkit-scrollbar-thumb:active { background-color: var(--sb-active); border-width: 3px; }
+  .v-pages::-webkit-scrollbar-thumb:active { background-color: var(--sb-active); }
   html::-webkit-scrollbar-button,
   .d-toc::-webkit-scrollbar-button,
   .v-pages::-webkit-scrollbar-button { display: none; }
 
   /* window */
-  html::-webkit-scrollbar { width: 14px; height: 14px; }
-  html::-webkit-scrollbar-track, html::-webkit-scrollbar-corner { background: var(--bg); }
+  html::-webkit-scrollbar { width: 12px; height: 12px; }
+  html::-webkit-scrollbar-track, html::-webkit-scrollbar-corner { background: transparent; }
+  html::-webkit-scrollbar-thumb { border-width: 3.5px; }
   html::-webkit-scrollbar-thumb { min-height: 56px; }
 
   /* table of contents: faint until the pointer or focus is inside */
-  .d-toc { --sb: var(--sb-faint); transition: --sb .2s; }
+  .d-toc { --sb: var(--sb-faint); transition: --sb .35s ease; }
   .d-toc:hover, .d-toc:focus-within { --sb: var(--sb-rest); }
   .d-toc::-webkit-scrollbar { width: 10px; }
   .d-toc::-webkit-scrollbar-track { background: transparent; }
   .d-toc::-webkit-scrollbar-thumb { border-width: 3px; min-height: 40px; }
-  .d-toc::-webkit-scrollbar-thumb:hover,
-  .d-toc::-webkit-scrollbar-thumb:active { border-width: 2px; }
 
   /* popup pages: sits on the gray surface beside white pages */
-  .v-pages { --sb: var(--sb-rest); transition: --sb .2s; }
-  .v-pages:hover { --sb: color-mix(in srgb, var(--text-3) 72%, transparent); }
-  .v-pages::-webkit-scrollbar { width: 14px; }
+  .v-pages { --sb: var(--sb-rest); transition: --sb .35s ease; }
+  .v-pages:hover { --sb: color-mix(in srgb, var(--text-3) 48%, transparent); }
+  .v-pages::-webkit-scrollbar { width: 12px; }
   .v-pages::-webkit-scrollbar-track { background: transparent; margin-block: 8px; }
   .v-pages::-webkit-scrollbar-thumb { min-height: 56px; }
 }
