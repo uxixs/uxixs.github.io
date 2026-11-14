@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portfolio</title>
+  <meta name="description" content="Papers and projects">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <nav class="wrap nav">
+      <a class="brand" href="#" id="brand"></a>
+      <div class="nav-links">
+        <a href="#papers">Papers</a>
+        <a href="#projects">Projects</a>
+        <a href="#contact">Contact</a>
+        <button class="theme" id="theme" aria-label="다크 모드 전환">◐</button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div class="avatar" id="avatar"></div>
+      <div>
+        <h1 id="name"></h1>
+        <p class="role" id="role"></p>
+        <p class="bio" id="bio"></p>
+        <div class="chips" id="hero-links"></div>
+      </div>
+    </section>
+
+    <section id="papers">
+      <div class="section-head">
+        <h2>Papers</h2>
+        <span class="count" id="paper-count"></span>
+      </div>
+      <ol class="papers" id="paper-list"></ol>
+    </section>
+
+    <section id="projects">
+      <div class="section-head">
+        <h2>Projects</h2>
+        <div class="filters" id="filters"></div>
+      </div>
+      <div class="grid" id="project-grid"></div>
+    </section>
+
+    <section id="contact" class="contact">
+      <h2>Contact</h2>
+      <p id="contact-line"></p>
+    </section>
+  </main>
+
+  <footer class="wrap foot" id="foot"></footer>
+
+  <script src="data.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
