@@ -164,8 +164,9 @@
 
   // 지금 쪽에 해당하는 목차 항목 강조. 같은 쪽에서 시작하는 항목이 여럿이면 첫 항목.
   // 목차를 눌러 이동했으면 그 쪽을 벗어날 때까지 누른 항목을 유지.
-  let shownPage = 0, picked = -1;
+  let shownPage = 0, picked = -1, activeIdx = -1, curPage = 1;
   function setOn(idx) {
+    activeIdx = idx;
     tocList.querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i === idx));
   }
   function markToc(n) {
@@ -176,15 +177,27 @@
     setOn(toc.findIndex((it) => it.page === best));
   }
 
-  async function load(f) {
+  // 목차 i 번째 항목이 차지하는 쪽 범위 [시작, 다음 항목 시작)
+  function sectionRange(i, total) {
+    const start = toc[i].page;
+    let next = total + 1;
+    for (let j = i + 1; j < toc.length; j++) {
+      if (toc[j].page && toc[j].page > start) { next = toc[j].page; break; }
+    }
+    return [start, next];
+  }
+
+  // keep: { idx, frac } 이면 새 언어 문서에서 같은 목차 항목(같은 순번)의 같은 비율 위치로 이동
+  async function load(f, keep) {
     const my = ++token;
     cur = f;
     document.querySelectorAll("#lang-tabs button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.path === f.path));
     const dl = $("bar-dl"); dl.href = f.path; dl.setAttribute("download", fileName(f.path));
     if (view) { view.destroy(); view = null; }
     if (cancel) { cancel(); cancel = null; }
+    if (keep) pagesEl.style.minHeight = pagesEl.offsetHeight + "px"; // 다시 그리는 동안 스크롤 위치 유지
     pagesEl.innerHTML = `<p class="v-status">불러오는 중…</p>`;
-    tocList.innerHTML = ""; pageno.textContent = ""; toc = []; shownPage = 0; picked = -1;
+    tocList.innerHTML = ""; pageno.textContent = ""; toc = []; shownPage = 0; picked = -1; activeIdx = -1; curPage = 1;
     try {
       const r = await PdfView.open(f.path);
       if (my !== token) { r.cancel(); return; }
@@ -192,7 +205,7 @@
       const total = r.doc.numPages;
       pageno.textContent = `1 / ${total}`;
       view = await PdfView.mount(pagesEl, r.doc, {
-        onPage: (n) => { pageno.textContent = `${n} / ${total}`; markToc(n); },
+        onPage: (n) => { curPage = n; pageno.textContent = `${n} / ${total}`; markToc(n); },
       });
       toc = await PdfView.outline(r.doc);
       if (my !== token) return;
@@ -200,8 +213,19 @@
         ? toc.map((it, i) => `<li class="l${Math.min(it.level, 3)}"><button type="button" data-i="${i}"${it.page ? "" : " disabled"}>
             <span class="t">${esc(it.title)}</span>${it.page ? `<span class="p">${it.page}</span>` : ""}</button></li>`).join("")
         : `<li class="d-toc-none">목차 정보가 없습니다.</li>`;
-      markToc(1);
+      const idx = keep ? Math.min(keep.idx, toc.length - 1) : -1;
+      if (idx >= 0 && toc[idx].page) {
+        const [start, next] = sectionRange(idx, total);
+        const target = Math.min(total, start + Math.floor(keep.frac * (next - start)));
+        view.scrollTo(target);
+        curPage = shownPage = target; picked = idx; setOn(idx);
+        pageno.textContent = `${target} / ${total}`;
+      } else {
+        markToc(1);
+      }
+      pagesEl.style.minHeight = "";
     } catch (err) {
+      pagesEl.style.minHeight = "";
       if (my !== token) return;
       pagesEl.innerHTML = `<p class="v-status">본문을 불러오지 못했습니다.<br>
         <a href="${esc(f.path)}" target="_blank" rel="noopener">새 탭에서 열기</a> 또는 <a href="${esc(f.path)}" download>다운로드</a>를 이용해 주세요.</p>`;
@@ -233,11 +257,19 @@
     if (!b || b.dataset.path === cur.path) return;
     const f = pdfs.find((x) => x.path === b.dataset.path);
     if (!f) return;
-    load(f);
+    // 본문을 읽는 중이면 지금 목차 항목과 그 안에서의 위치를 기억해 두었다가 새 언어에서 이어서 보여 줌
+    const reading = $("read").getBoundingClientRect().top < 80 && activeIdx >= 0 && view;
+    let keep = null;
+    if (reading) {
+      const [start, next] = sectionRange(activeIdx, view.pages);
+      const frac = Math.min(Math.max((curPage - start) / Math.max(1, next - start), 0), 0.999);
+      keep = { idx: activeIdx, frac };
+    }
+    load(f, keep);
     const u = new URL(location.href);
     if (f.label) u.searchParams.set("lang", f.label); else u.searchParams.delete("lang");
     history.replaceState(null, "", u);
-    $("read").scrollIntoView({ block: "start" });
+    if (!reading) $("read").scrollIntoView({ block: "start" });
   });
 
   load(cur);
