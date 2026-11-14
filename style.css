@@ -423,7 +423,7 @@ button.btn { font-family: inherit; border: 0; background: none; cursor: pointer;
 }
 .d-toc {
   position: sticky; top: 82px; max-height: calc(100vh - 106px); overflow-y: auto;
-  padding-right: 4px; scrollbar-width: thin;
+  padding-right: 4px;
 }
 .d-toc-h { font-size: 12px; font-weight: 700; color: var(--text-3); letter-spacing: .04em; margin-bottom: 8px; }
 .d-toc ol { list-style: none; margin: 0; padding: 0; }
@@ -478,4 +478,71 @@ button.btn { font-family: inherit; border: 0; background: none; cursor: pointer;
   .d-reader { padding: 12px 8px 48px; }
   .d-pages { gap: 10px; }
   .d-pages .v-page { scroll-margin-top: 62px; }
+}
+
+/* =============================================================
+   scrollbars
+   Slim floating pill: quiet at rest, thickens on hover, turns
+   accent while dragged. Desktop pointers only, so touch devices
+   keep their native overlay scrollbars.
+   ============================================================= */
+@property --sb {
+  syntax: "<color>"; inherits: true; initial-value: transparent;
+}
+:root {
+  --sb-rest: color-mix(in srgb, var(--text-3) 50%, transparent);
+  --sb-faint: color-mix(in srgb, var(--text-3) 28%, transparent);
+  --sb-hover: var(--text-2);
+  --sb-active: var(--accent);
+  --sb: var(--sb-rest);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* shared thumb: the transparent border insets the pill inside its gutter,
+     so it can grow on hover without changing the gutter width */
+  html::-webkit-scrollbar-thumb,
+  .d-toc::-webkit-scrollbar-thumb,
+  .v-pages::-webkit-scrollbar-thumb {
+    background-color: var(--sb); background-clip: padding-box;
+    border: 4px solid transparent; border-radius: 999px;
+  }
+  html::-webkit-scrollbar-thumb:hover,
+  .d-toc::-webkit-scrollbar-thumb:hover,
+  .v-pages::-webkit-scrollbar-thumb:hover { background-color: var(--sb-hover); border-width: 3px; }
+  html::-webkit-scrollbar-thumb:active,
+  .d-toc::-webkit-scrollbar-thumb:active,
+  .v-pages::-webkit-scrollbar-thumb:active { background-color: var(--sb-active); border-width: 3px; }
+  html::-webkit-scrollbar-button,
+  .d-toc::-webkit-scrollbar-button,
+  .v-pages::-webkit-scrollbar-button { display: none; }
+
+  /* window */
+  html::-webkit-scrollbar { width: 14px; height: 14px; }
+  html::-webkit-scrollbar-track, html::-webkit-scrollbar-corner { background: var(--bg); }
+  html::-webkit-scrollbar-thumb { min-height: 56px; }
+
+  /* table of contents: faint until the pointer or focus is inside */
+  .d-toc { --sb: var(--sb-faint); transition: --sb .2s; }
+  .d-toc:hover, .d-toc:focus-within { --sb: var(--sb-rest); }
+  .d-toc::-webkit-scrollbar { width: 10px; }
+  .d-toc::-webkit-scrollbar-track { background: transparent; }
+  .d-toc::-webkit-scrollbar-thumb { border-width: 3px; min-height: 40px; }
+  .d-toc::-webkit-scrollbar-thumb:hover,
+  .d-toc::-webkit-scrollbar-thumb:active { border-width: 2px; }
+
+  /* popup pages: sits on the gray surface beside white pages */
+  .v-pages { --sb: var(--sb-rest); transition: --sb .2s; }
+  .v-pages:hover { --sb: color-mix(in srgb, var(--text-3) 72%, transparent); }
+  .v-pages::-webkit-scrollbar { width: 14px; }
+  .v-pages::-webkit-scrollbar-track { background: transparent; margin-block: 8px; }
+  .v-pages::-webkit-scrollbar-thumb { min-height: 56px; }
+}
+
+/* Firefox: standard properties only where ::-webkit-scrollbar is unsupported,
+   so Chromium keeps the styling above */
+@supports not selector(::-webkit-scrollbar) {
+  html { scrollbar-color: var(--sb-rest) var(--bg); }
+  .d-toc { scrollbar-width: thin; scrollbar-color: var(--sb-faint) transparent; }
+  .d-toc:hover, .d-toc:focus-within { scrollbar-color: var(--sb-rest) transparent; }
+  .v-pages { scrollbar-width: thin; scrollbar-color: var(--sb-rest) transparent; }
 }
