@@ -75,9 +75,29 @@
       } catch (e) { box.dataset.done = ""; }
     }
 
+    // 맨 위로·목차 이동처럼 멀리 날아가는 중에는 지나치는 쪽을 그리지 않고,
+    // 도착한 뒤 그 근처 쪽만 그림 (휴대폰에서 이동이 끊기지 않도록)
+    const MARGIN = 1400;
+    const pending = new Set();
+    function flush() {
+      if (!alive) return;
+      const view = opts.root ? opts.root.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+      pending.forEach((b) => {
+        const r = b.getBoundingClientRect();
+        if (r.bottom > view.top - MARGIN && r.top < view.bottom + MARGIN) draw(b);
+      });
+      pending.clear();
+    }
+    function want(box) {
+      const SS = window.SmoothScroll;
+      if (SS && SS.busy && SS.busy()) { pending.add(box); SS.onIdle(flush); return; }
+      draw(box);
+    }
+
     boxes.slice(0, 2).forEach(draw);
-    const near = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && draw(e.target)),
-      { root: opts.root || null, rootMargin: "1400px 0px" });
+    const near = new IntersectionObserver((es) => es.forEach((e) => {
+      if (e.isIntersecting) want(e.target); else pending.delete(e.target);
+    }), { root: opts.root || null, rootMargin: `${MARGIN}px 0px` });
     boxes.forEach((b) => near.observe(b));
 
     let tracker = null;

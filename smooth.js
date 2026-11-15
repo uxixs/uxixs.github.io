@@ -30,7 +30,25 @@
       if (s.mode && performance.now() - s.last > 150) { setY(el, s.target); stop(s); }
     }, 200);
   }
-  function stop(s) { s.mode = null; cancelAnimationFrame(s.raf); clearTimeout(s.watch); }
+  function stop(s) {
+    s.mode = null; cancelAnimationFrame(s.raf); clearTimeout(s.watch);
+    if (s.counted) { s.counted = false; settle(); }
+  }
+
+  // 코드에서 하는 이동이 진행 중인지 (그동안 PDF 쪽 그리기 같은 무거운 일을 미룸)
+  let active = 0;
+  const idle = new Set();
+  function settle() {
+    active = Math.max(0, active - 1);
+    if (active) return;
+    const cbs = [...idle]; idle.clear();
+    cbs.forEach((f) => { try { f(); } catch (e) {} });
+  }
+  const busy = () => active > 0;
+  const onIdle = (f) => { if (!active) f(); else idle.add(f); };
+
+  const finePointer = !!(window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches);
+  const nativeSmooth = "scrollBehavior" in document.documentElement.style;
 
   // ---- 1) 코드에서 하는 이동: 시간 기반 ease-out ----
   const easeOut = (t) => 1 - Math.pow(1 - t, 3);
@@ -50,16 +68,32 @@
     stop(s);
     const target = Math.max(0, Math.min(maxY(el), y));
     if (reduce.matches || opts.instant) { setY(el, target); return; }
-    s.from = s.pos = getY(el);
-    s.target = target;
-    const dist = Math.abs(target - s.from);
+    const from = getY(el);
+    const dist = Math.abs(target - from);
     if (dist < 1) return;
+
+    // 휴대폰·태블릿: 페이지 전체 스크롤은 브라우저 기본 부드러운 스크롤에 맡김.
+    // (화면 합성 단계에서 돌아가서 끊기지 않음. 터치 기기에선 목차가 접힌 메뉴라 동시 스크롤 충돌도 없음)
+    if (el === root && !finePointer && nativeSmooth) {
+      active++;
+      let done = false;
+      const finish = () => { if (done) return; done = true; window.removeEventListener("scrollend", finish); settle(); };
+      window.addEventListener("scrollend", finish);
+      setTimeout(finish, 1600); // scrollend 를 지원하지 않는 브라우저용
+      window.scrollTo({ top: target, behavior: "smooth" });
+      return;
+    }
+
+    s.from = s.pos = from;
+    s.target = target;
     s.dur = opts.duration || Math.min(900, 280 + Math.sqrt(dist) * 5);
     s.t0 = s.last = performance.now();
     s.mode = "tween";
+    s.counted = el === root; // 페이지 전체 이동만 "바쁨"으로 침 (목차 창 스크롤은 제외)
+    if (s.counted) active++;
     frame(el, s, tween);
   }
-  window.SmoothScroll = { to };
+  window.SmoothScroll = { to, busy, onIdle };
 
   // ---- 2) 마우스 휠 ----
   if (!window.matchMedia || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
