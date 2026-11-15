@@ -89,7 +89,7 @@
 
     <div class="d-wrap d-grid">
       <section class="d-abs">
-        ${hasKoAbs || hasEnAbs ? `<div class="d-h"><h2>초록</h2>${absTabs}</div>
+        ${hasKoAbs || hasEnAbs ? `<div class="d-h"><h2>${w.type === "paper" ? "초록" : "소개"}</h2>${absTabs}</div>
           <div class="d-abs-body" id="abs-body"></div>` :
           (w.description ? `<div class="d-h"><h2>소개</h2></div><div class="d-abs-body">${paras(w.description)}</div>` : "")}
       </section>
