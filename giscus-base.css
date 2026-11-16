@@ -10,10 +10,10 @@ main {
 }
 
 /* ---- 공감 ---- */
-main .gsc-reactions { text-align: left; margin-bottom: 8px; }
-main .gsc-reactions-count { font-size: 13px; font-weight: 600; }
+main .gsc-reactions { align-items: flex-start !important; text-align: left; margin-bottom: 8px; }
+main .gsc-reactions-count { font-size: 13px; font-weight: 600; text-align: left !important; }
 main .gsc-reactions-count a { color: var(--color-fg-subtle) !important; }
-main .gsc-reactions .justify-center { justify-content: flex-start; }
+main .gsc-reactions > div, main .gsc-reactions .justify-center { justify-content: flex-start !important; }
 main .gsc-social-reaction-summary-item {
   height: 30px; padding: 0 11px; margin: 0;
   border: 1px solid var(--color-border-default) !important;
@@ -27,7 +27,7 @@ main .gsc-social-reaction-summary-item.has-reacted {
   background: var(--color-accent-subtle); color: var(--color-accent-fg);
 }
 main .gsc-reactions-popover {
-  border-radius: 12px; overflow: hidden;
+  border-radius: 12px !important; overflow: hidden;
   box-shadow: 0 12px 32px rgba(0, 0, 0, .14);
 }
 main .gsc-emoji-button { border-radius: 8px; }
@@ -39,9 +39,9 @@ main .gsc-comments-count a { text-decoration: none; }
 main .gsc-left-header em { font-size: 12px; opacity: .7; }
 
 /* ---- 입력 상자 ---- */
-main .gsc-comment-box {
+main .gsc-comment-box, main .gsc-comment-box:not(.gsc-comment-box-is-reply) {
   border: 1px solid var(--color-border-default) !important;
-  border-radius: 14px; overflow: hidden;
+  border-radius: 14px !important; overflow: hidden;
   background: var(--color-canvas-overlay) !important;
 }
 main .gsc-comment-box-tabs {
@@ -54,13 +54,14 @@ main .gsc-comment-box-textarea-extras {
   font-family: inherit; font-size: 15px; line-height: 1.7;
   background: var(--color-canvas-overlay) !important;
 }
-main .gsc-comment-box-textarea { border-radius: 10px 10px 0 0; }
+main .gsc-comment-box-write { border-radius: 10px !important; }
+main .gsc-comment-box-textarea { border-radius: 10px 10px 0 0 !important; }
 main .gsc-comment-box-textarea:focus { box-shadow: 0 0 0 3px var(--color-accent-subtle); }
-main .gsc-comment-box-textarea-extras { border-radius: 0 0 10px 10px; }
+main .gsc-comment-box-textarea-extras { border-radius: 0 0 10px 10px !important; }
 
 /* ---- 버튼 ---- */
 main .btn {
-  border-radius: 10px; font-weight: 600; font-size: 13px;
+  border-radius: 10px !important; font-weight: 600; font-size: 13px;
   box-shadow: none !important;
 }
 main .btn-primary { border-color: transparent !important; }
@@ -73,7 +74,7 @@ main .gsc-comment .color-bg-primary {
 }
 main .gsc-comment {
   border: 1px solid var(--color-border-muted);
-  border-radius: 14px;
+  border-radius: 14px !important;
   background: var(--color-canvas-overlay);
 }
 main .gsc-comment-author-avatar img { border-radius: 50%; }

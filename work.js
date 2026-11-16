@@ -160,7 +160,7 @@
     if (!C || !box) return;
     const dark = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : { matches: false };
     // 사이트 색에 맞춘 테마 (giscus-light.css / giscus-dark.css)
-    const theme = () => new URL(`giscus-${dark.matches ? "dark" : "light"}.css?v=1`, location.href).href;
+    const theme = () => new URL(`giscus-${dark.matches ? "dark" : "light"}.css?v=2`, location.href).href;
     let started = false;
     function start() {
       if (started) return; started = true;
