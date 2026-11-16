@@ -62,6 +62,10 @@ svg {
 
 .page { max-width: 944px; margin: 0 auto; padding: 0 32px; }
 
+/* 메인 화면 배경: 커서 빛 + 점 격자 (glow.js, 마우스 있는 PC 에서만) */
+.glow-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.glow-bg ~ .page { position: relative; z-index: 1; }
+
 /* ---------- header ---------- */
 .top {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
