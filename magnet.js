@@ -30,10 +30,11 @@
     // 목록은 필터를 누를 때마다 새로 그려지므로 매번 다시 찾음
     const list = on ? works.querySelectorAll(".work") : [...pulled.keys()];
     const jobs = [];
+    let best = -1, bestFar = Infinity; // 한 번에 하나만: 커서와 가장 가까운 카드
     for (const el of list) {
       let p = pulled.get(el);
       if (!el.isConnected) { pulled.delete(el); continue; }
-      let tx = 0, ty = 0;
+      let tx = 0, ty = 0, far = Infinity;
       if (on) {
         const b = el.getBoundingClientRect();
         if (b.bottom < -PULL_RANGE || b.top > H + PULL_RANGE) { if (!p) continue; }
@@ -42,7 +43,7 @@
           const l = b.left - (p ? p.x : 0), t = b.top - (p ? p.y : 0);
           const ox = tgt.x - (l + b.width / 2), oy = tgt.y - (t + b.height / 2);
           const gx = Math.max(0, Math.abs(ox) - b.width / 2), gy = Math.max(0, Math.abs(oy) - b.height / 2);
-          const far = Math.sqrt(gx * gx + gy * gy); // 커서와 카드 사이 거리 (카드 위면 0)
+          far = Math.sqrt(gx * gx + gy * gy); // 커서와 카드 사이 거리 (카드 위면 0)
           if (far < PULL_RANGE) {
             const f = 1 - far / PULL_RANGE, nx = ox / (b.width / 2), ny = oy / (b.height / 2);
             tx = PULL_X * f * f * Math.max(-1, Math.min(1, nx));
@@ -50,13 +51,23 @@
           }
         }
       }
-      if (!p) { if (!tx && !ty) continue; p = { x: 0, y: 0 }; pulled.set(el, p); }
+      if ((tx || ty) && far < bestFar) { bestFar = far; best = jobs.length; }
+      if (!p && !tx && !ty) continue;
       jobs.push(el, p, tx, ty);
+    }
+    // 가장 가까운 카드만 끌고, 나머지는 제자리로
+    for (let i = 0; i < jobs.length; i += 4) {
+      if (i !== best) { jobs[i + 2] = 0; jobs[i + 3] = 0; }
+      if (!jobs[i + 1]) {
+        if (i !== best) { jobs[i] = null; continue; }
+        jobs[i + 1] = { x: 0, y: 0 }; pulled.set(jobs[i], jobs[i + 1]);
+      }
     }
     // 위치를 다 읽은 뒤에 한꺼번에 옮김
     let busy = false;
     for (let i = 0; i < jobs.length; i += 4) {
       const el = jobs[i], p = jobs[i + 1], tx = jobs[i + 2], ty = jobs[i + 3];
+      if (!el) continue;
       p.x += (tx - p.x) * ease; p.y += (ty - p.y) * ease;
       if (Math.abs(tx - p.x) < 0.04 && Math.abs(ty - p.y) < 0.04) {
         if (!tx && !ty) { el.style.transform = ""; pulled.delete(el); continue; } // 제자리로 오면 흔적을 지움
