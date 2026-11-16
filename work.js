@@ -124,7 +124,7 @@
     </section>` : ""}
 
     ${S.comments ? `<section class="d-comments" id="comments"><div class="d-wrap">
-      <div class="d-h"><h2>댓글</h2></div>
+      <div class="d-h"><h2>댓글</h2><a class="d-cm-manage" id="cm-manage" href="#" target="_blank" rel="noopener" hidden>수정·삭제는 GitHub에서${ICON.arrow}</a></div>
       <div class="giscus"><p class="d-cm-note">댓글을 불러오는 중…</p></div>
     </div></section>` : ""}
   `;
@@ -169,7 +169,7 @@
       const cfg = {
         repo: C.repo, "repo-id": C.repoId, category: C.category, "category-id": C.categoryId,
         mapping: "specific", term: `work:${w.id}`, strict: "1",
-        "reactions-enabled": "1", "emit-metadata": "0", "input-position": "top",
+        "reactions-enabled": "1", "emit-metadata": "1", "input-position": "top",
         theme: theme(), lang: "ko", loading: "lazy",
       };
       Object.entries(cfg).forEach(([k, v]) => s.setAttribute(`data-${k}`, v));
@@ -182,6 +182,14 @@
       if (f) f.contentWindow.postMessage({ giscus: { setConfig: { theme: theme() } } }, "https://giscus.app");
     };
     if (dark.addEventListener) dark.addEventListener("change", onScheme);
+    // 댓글 창 안에서는 지울 수 없어서(giscus 제약), 이 글의 GitHub 토론 페이지로 가는 링크를 띄움.
+    // 거기서 본인 댓글은 본인이, 모든 댓글은 저장소 주인이 수정·삭제할 수 있음.
+    window.addEventListener("message", (e) => {
+      if (e.origin !== "https://giscus.app" || !e.data || !e.data.giscus) return;
+      const d = e.data.giscus.discussion, a = $("cm-manage");
+      if (!a) return;
+      if (d && /^https:\/\/github\.com\//.test(d.url || "")) { a.href = d.url; a.hidden = false; }
+    });
     // 로그인하고 돌아왔거나 #comments 로 들어왔으면 바로 불러옴
     if (location.hash === "#comments" || params.has("giscus") || !("IntersectionObserver" in window)) { start(); return; }
     const io = new IntersectionObserver((es) => {
