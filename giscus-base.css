@@ -1,0 +1,85 @@
+/* =============================================================
+   giscus 댓글 창 공통 모양 (giscus-light.css / giscus-dark.css 가 불러옴)
+   색은 각 테마 파일의 변수에서, 모양은 여기서 사이트(style.css)와 맞춥니다.
+   ============================================================= */
+main {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  letter-spacing: -.005em;
+  background: transparent;
+}
+
+/* ---- 공감 ---- */
+main .gsc-reactions { text-align: left; margin-bottom: 8px; }
+main .gsc-reactions-count { font-size: 13px; font-weight: 600; }
+main .gsc-reactions-count a { color: var(--color-fg-subtle) !important; }
+main .gsc-reactions .justify-center { justify-content: flex-start; }
+main .gsc-social-reaction-summary-item {
+  height: 30px; padding: 0 11px; margin: 0;
+  border: 1px solid var(--color-border-default) !important;
+  border-radius: 999px; background: var(--color-canvas-overlay);
+  font-size: 13px; font-weight: 550; color: var(--color-fg-muted);
+  transition: border-color .15s, background-color .15s, color .15s;
+}
+main .gsc-social-reaction-summary-item:hover { border-color: var(--color-accent-fg) !important; color: var(--color-accent-fg); }
+main .gsc-social-reaction-summary-item.has-reacted {
+  border-color: var(--color-accent-fg) !important;
+  background: var(--color-accent-subtle); color: var(--color-accent-fg);
+}
+main .gsc-reactions-popover {
+  border-radius: 12px; overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .14);
+}
+main .gsc-emoji-button { border-radius: 8px; }
+
+/* ---- 머리줄 ---- */
+main .gsc-header { padding-bottom: 12px; border-bottom: 0; }
+main .gsc-comments-count { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+main .gsc-comments-count a { text-decoration: none; }
+main .gsc-left-header em { font-size: 12px; opacity: .7; }
+
+/* ---- 입력 상자 ---- */
+main .gsc-comment-box {
+  border: 1px solid var(--color-border-default) !important;
+  border-radius: 14px; overflow: hidden;
+  background: var(--color-canvas-overlay) !important;
+}
+main .gsc-comment-box-tabs {
+  background: var(--color-canvas-subtle) !important;
+  border-color: var(--color-border-default) !important;
+}
+main .gsc-comment-box-tabs button { font-size: 13px; font-weight: 600; border-radius: 8px 8px 0 0; }
+main .gsc-comment-box-textarea,
+main .gsc-comment-box-textarea-extras {
+  font-family: inherit; font-size: 15px; line-height: 1.7;
+  background: var(--color-canvas-overlay) !important;
+}
+main .gsc-comment-box-textarea { border-radius: 10px 10px 0 0; }
+main .gsc-comment-box-textarea:focus { box-shadow: 0 0 0 3px var(--color-accent-subtle); }
+main .gsc-comment-box-textarea-extras { border-radius: 0 0 10px 10px; }
+
+/* ---- 버튼 ---- */
+main .btn {
+  border-radius: 10px; font-weight: 600; font-size: 13px;
+  box-shadow: none !important;
+}
+main .btn-primary { border-color: transparent !important; }
+
+/* ---- 댓글 ---- */
+main .gsc-timeline { margin-top: 24px; }
+main .gsc-comment > div:first-child,
+main .gsc-comment .color-bg-primary {
+  border-radius: 14px;
+}
+main .gsc-comment {
+  border: 1px solid var(--color-border-muted);
+  border-radius: 14px;
+  background: var(--color-canvas-overlay);
+}
+main .gsc-comment-author-avatar img { border-radius: 50%; }
+main .gsc-comment-author { font-weight: 650; }
+main .gsc-comment-content { font-size: 15px; line-height: 1.75; word-break: keep-all; overflow-wrap: anywhere; }
+main .gsc-replies { border-top-color: var(--color-border-muted) !important; background: var(--color-canvas-subtle); }
+main .gsc-comment:not(.gsc-reply-box) .gsc-replies { border-radius: 0 0 14px 14px; }
+
+main a { text-underline-offset: 2px; }

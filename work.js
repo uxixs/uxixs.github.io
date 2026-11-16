@@ -159,7 +159,8 @@
     const C = S.comments, box = document.querySelector("#comments .giscus");
     if (!C || !box) return;
     const dark = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : { matches: false };
-    const theme = () => (dark.matches ? "noborder_dark" : "noborder_light");
+    // 사이트 색에 맞춘 테마 (giscus-light.css / giscus-dark.css)
+    const theme = () => new URL(`giscus-${dark.matches ? "dark" : "light"}.css?v=1`, location.href).href;
     let started = false;
     function start() {
       if (started) return; started = true;
