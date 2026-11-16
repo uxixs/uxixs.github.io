@@ -18,6 +18,7 @@
     link: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.75 9.25a2.75 2.75 0 0 0 4 .1l2-2a2.75 2.75 0 0 0-3.9-3.9l-.85.85M9.25 6.75a2.75 2.75 0 0 0-4-.1l-2 2a2.75 2.75 0 0 0 3.9 3.9l.85-.85"/></svg>',
     arrow: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 11 11 5M6 5h5v5"/></svg>',
     up: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3.5M4 7.5l4-4 4 4"/></svg>',
+    chat: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.75 3.75a1 1 0 0 1 1-1h8.5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7l-3 2.5v-2.5h-.25a1 1 0 0 1-1-1v-6Z"/></svg>',
     list: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 4h8M5.5 8h8M5.5 12h8M2.5 4h.01M2.5 8h.01M2.5 12h.01"/></svg>',
   };
 
@@ -85,6 +86,7 @@
       <div class="d-actions">
         ${cur ? `<a class="btn primary" href="#read">${ICON.book}<span>본문 보기</span></a>` : ""}
         ${dlBtns}${extBtns}
+        ${S.comments ? `<a class="btn" href="#comments">${ICON.chat}<span>댓글</span></a>` : ""}
         <button type="button" class="btn" id="copy">${ICON.link}<span>링크 복사</span></button>
       </div>
     </div></section>
@@ -120,6 +122,11 @@
         <div class="d-pages" id="pages"></div>
       </div>
     </section>` : ""}
+
+    ${S.comments ? `<section class="d-comments" id="comments"><div class="d-wrap">
+      <div class="d-h"><h2>댓글</h2></div>
+      <div class="giscus"><p class="d-cm-note">댓글을 불러오는 중…</p></div>
+    </div></section>` : ""}
   `;
 
   // ---- 초록 ----
@@ -146,6 +153,43 @@
     catch (err) { span.textContent = "복사 실패"; }
     setTimeout(() => { span.textContent = "링크 복사"; }, 1600);
   });
+
+  // ---- 댓글 (giscus) : 화면 가까이 오면 그때 불러옴 ----
+  (function comments() {
+    const C = S.comments, box = document.querySelector("#comments .giscus");
+    if (!C || !box) return;
+    const dark = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : { matches: false };
+    const theme = () => (dark.matches ? "noborder_dark" : "noborder_light");
+    let started = false;
+    function start() {
+      if (started) return; started = true;
+      const s = document.createElement("script");
+      s.src = "https://giscus.app/client.js";
+      s.async = true; s.crossOrigin = "anonymous";
+      const cfg = {
+        repo: C.repo, "repo-id": C.repoId, category: C.category, "category-id": C.categoryId,
+        mapping: "specific", term: `work:${w.id}`, strict: "1",
+        "reactions-enabled": "1", "emit-metadata": "0", "input-position": "top",
+        theme: theme(), lang: "ko", loading: "lazy",
+      };
+      Object.entries(cfg).forEach(([k, v]) => s.setAttribute(`data-${k}`, v));
+      s.onerror = () => { box.innerHTML = `<p class="d-cm-note">댓글을 불러오지 못했습니다.</p>`; };
+      box.appendChild(s);
+    }
+    // 기기의 밝기 모드가 바뀌면 댓글 창도 따라 바꿈
+    const onScheme = () => {
+      const f = document.querySelector("iframe.giscus-frame");
+      if (f) f.contentWindow.postMessage({ giscus: { setConfig: { theme: theme() } } }, "https://giscus.app");
+    };
+    if (dark.addEventListener) dark.addEventListener("change", onScheme);
+    // 로그인하고 돌아왔거나 #comments 로 들어왔으면 바로 불러옴
+    if (location.hash === "#comments" || params.has("giscus") || !("IntersectionObserver" in window)) { start(); return; }
+    const io = new IntersectionObserver((es) => {
+      if (es.some((e) => e.isIntersecting)) { io.disconnect(); start(); }
+    }, { rootMargin: "800px 0px" });
+    io.observe(box);
+    document.querySelectorAll('a[href="#comments"]').forEach((a) => a.addEventListener("click", start));
+  })();
 
   // ---- 쪽수 (정보 표) ----
   pdfs.forEach(async (f) => {

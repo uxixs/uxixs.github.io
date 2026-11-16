@@ -27,6 +27,14 @@ window.SITE = {
   title: "uxixs",
   subtitle: "Works archive",
 
+  // 상세 페이지 아래 댓글·공감 (giscus, GitHub Discussions 에 저장). 끄려면 comments: null
+  comments: {
+    repo: "uxixs/uxixs.github.io",
+    repoId: "R_kgDOVuWQlA",
+    category: "Announcements",
+    categoryId: "DIC_kwDOVuWQlM4DLO95",
+  },
+
   works: [
     {
       id: "wikirace",
