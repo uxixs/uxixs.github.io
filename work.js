@@ -36,7 +36,9 @@
 
   const t = TYPE[w.type] || [w.type || "", w.type || "", w.type || ""];
   document.title = `${w.title} · ${site}`;
-  $("crumb").innerHTML = `<a href="./">${esc(t[1])}</a><span>/</span><span>${esc(w.year || "")}</span>`;
+  const mo = Number(w.month) >= 1 && Number(w.month) <= 12 ? String(Number(w.month)).padStart(2, "0") : "";
+  const when = w.year ? `${w.year}${mo ? ". " + mo : ""}` : "";
+  $("crumb").innerHTML = `<a href="./">${esc(t[1])}</a><span>/</span><span>${esc(when)}</span>`;
 
   const pdfs = filesOf(w).filter((f) => isPdf(f.path));
   const others = filesOf(w).filter((f) => !isPdf(f.path));
@@ -60,7 +62,7 @@
 
   const rows = [
     ["유형", esc(t[2] || t[0])],
-    ["발행연도", esc(w.year || "")],
+    [mo ? "발행일" : "발행연도", esc(when)],
     w.venue && ["구분", esc(w.venue)],
     pdfs.length && ["언어", pdfs.map((f) => esc(f.label || "PDF")).join(" · ")],
     pdfs.length && ["분량", `<span id="pagecounts">${pdfs.map((f) => `${esc(f.label || "PDF")} <span data-count="${esc(f.path)}">…</span>`).join(" · ")}</span>`],
@@ -76,7 +78,7 @@
 
   $("detail").innerHTML = `
     <section class="d-hero"><div class="d-wrap">
-      <p class="kind" data-type="${esc(w.type || "")}"><span class="glyph">${ICON[w.type] || ICON.paper}</span>${esc(t[0])}<span class="venue">${esc(w.year || "")}</span></p>
+      <p class="kind" data-type="${esc(w.type || "")}"><span class="glyph">${ICON[w.type] || ICON.paper}</span>${esc(t[0])}<span class="venue">${esc(when)}</span></p>
       <h1>${esc(w.title)}</h1>
       ${w.subheading ? `<p class="d-sub">${esc(w.subheading)}</p>` : ""}
       ${w.subtitle ? `<p class="d-en"><span>${esc(w.subtitle)}</span>${w.subheading_en ? `<br><span class="d-en-sub">${esc(w.subheading_en)}</span>` : ""}</p>` : ""}

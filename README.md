@@ -23,6 +23,7 @@ images/      미리보기 이미지
   type: "paper",              // "paper" 또는 "project"
   title: "제목",
   year: 2026,
+  month: 11,                  // 선택 (1~12)
   description: "설명",
   file: "papers/my-paper.pdf",
   link: "",

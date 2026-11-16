@@ -98,6 +98,7 @@ svg {
   font-size: 15px; line-height: 24px; font-weight: 600; letter-spacing: -.01em;
   color: var(--text-3); font-variant-numeric: tabular-nums;
 }
+.year > h2 .mo { margin-left: 4px; font-weight: 500; color: var(--text-3); opacity: .7; }
 
 /* ---------- work ---------- */
 .work {

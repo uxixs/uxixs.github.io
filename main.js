@@ -27,9 +27,10 @@
   const fileName = (p) => String(p || "").split("/").pop();
   const detailUrl = (w) => `work.html?id=${encodeURIComponent(w.id)}`;
 
-  // 연도 내림차순. 같은 해에서는 data.js 에 적은 순서 유지.
+  // 연도·달 내림차순. 같은 달(또는 달이 없는 같은 해)에서는 data.js 에 적은 순서 유지.
+  const mon = (w) => { const m = Number(w.month); return m >= 1 && m <= 12 ? m : 0; };
   const works = (S.works || []).map((w, i) => ({ w, i }))
-    .sort((a, b) => (Number(b.w.year) || 0) - (Number(a.w.year) || 0) || a.i - b.i)
+    .sort((a, b) => (Number(b.w.year) || 0) - (Number(a.w.year) || 0) || mon(b.w) - mon(a.w) || a.i - b.i)
     .map((x) => x.w);
   const types = [...new Set(works.map((w) => w.type).filter(Boolean))];
   let filter = "all";
@@ -119,12 +120,13 @@
     const groups = [];
     list.forEach((w) => {
       const y = w.year ? String(w.year) : "";
+      const m = y && mon(w) ? String(mon(w)).padStart(2, "0") : "";
       const g = groups[groups.length - 1];
-      if (g && g.year === y) g.items.push(w); else groups.push({ year: y, items: [w] });
+      if (g && g.year === y && g.month === m) g.items.push(w); else groups.push({ year: y, month: m, items: [w] });
     });
     $("works").innerHTML = groups.map((g) =>
       `<section class="year">
-        <h2>${esc(g.year || "—")}</h2>
+        <h2>${esc(g.year || "—")}${g.month ? ` <span class="mo">${g.month}</span>` : ""}</h2>
         <div class="items">${g.items.map((w) => item(w, works.indexOf(w))).join("")}</div>
       </section>`).join("");
     Tex.run($("works"));
