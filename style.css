@@ -14,7 +14,6 @@
   --project-soft: rgba(11, 143, 124, .12);
   --card: #ffffff;
   --card-line: #e6e6e2;
-  --card-shadow: 0 1px 2px rgba(17, 17, 19, .04), 0 2px 8px rgba(17, 17, 19, .03);
   --card-shadow-hover: 0 2px 4px rgba(17, 17, 19, .04), 0 14px 34px rgba(17, 17, 19, .09);
   --btn-bg: #111113;
   --btn-text: #ffffff;
@@ -38,7 +37,6 @@
     --project-soft: rgba(79, 209, 189, .13);
     --card: #141417;
     --card-line: #232328;
-    --card-shadow: 0 1px 2px rgba(0, 0, 0, .35);
     --card-shadow-hover: 0 2px 4px rgba(0, 0, 0, .35), 0 16px 40px rgba(0, 0, 0, .45);
     --btn-bg: #f2f2f3;
     --btn-text: #0c0c0e;
@@ -114,7 +112,7 @@ svg {
   display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: start;
   padding: 30px 32px 32px;
   background: var(--card); border: 1px solid var(--card-line); border-radius: 18px;
-  box-shadow: var(--card-shadow);
+  box-shadow: none;
   transition: box-shadow .35s ease, border-color .35s ease;
   animation: rise .4s cubic-bezier(.2, .7, .2, 1) both;
 }
@@ -315,8 +313,13 @@ button.btn { font-family: inherit; border: 0; background: none; cursor: pointer;
 
   .year { grid-template-columns: minmax(0, 1fr); }
   .year > h2 { position: static; padding-top: 22px; font-size: 14px; }
-  .year > .items { gap: 12px; padding: 12px 0 24px; }
-  .work, .work.has-image { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 20px 20px 22px; border-radius: 16px; }
+  /* 휴대폰: 카드 대신 선으로 구분 (폭을 넓게 쓰도록) */
+  .year > .items { gap: 0; padding: 0; }
+  .work, .work.has-image {
+    grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 16px 0 30px;
+    background: none; border: 0; border-radius: 0; box-shadow: none;
+  }
+  .work + .work { border-top: 1px solid var(--line); padding-top: 28px; }
   .work h3 { font-size: 21px; }
   .desc { font-size: 15px; }
   .thumb { aspect-ratio: 16 / 9; margin-top: 4px; order: -1; }
